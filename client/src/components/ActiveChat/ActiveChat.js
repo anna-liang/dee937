@@ -37,6 +37,10 @@ const ActiveChat = ({
     return obj !== {} && obj !== undefined;
   };
 
+  const lastReadMessage = isConversation(conversation) 
+    ? conversation.messages[conversation.messages.length - conversation.unreadCount - 1] 
+    : undefined;
+
   return (
     <Box className={classes.root}>
       {isConversation(conversation) && conversation.otherUser && (
@@ -49,6 +53,7 @@ const ActiveChat = ({
             {user && (
               <>
                 <Messages
+                  lastReadMessage={lastReadMessage}
                   messages={conversation.messages}
                   otherUser={conversation.otherUser}
                   userId={user.id}
