@@ -41,7 +41,7 @@ const Home = ({ user, logout }) => {
         newState.push(fakeConvo);
       }
     });
-
+    
     setConversations(newState);
   };
 
@@ -71,6 +71,12 @@ const Home = ({ user, logout }) => {
       } else {
         addMessageToConversation(data);
       }
+      
+      const conversationId = body.conversationId ? body.conversationId : data.message.conversationId;
+      const conversation = conversations.filter((convo) => convo.id === conversationId);
+      const unreadCount = conversation.length !== 0 ? conversation[0].unreadCount : 0;
+      const unreadCountBody = { 'conversationId': conversationId, 'unreadCount': unreadCount + 1 };
+      updateUnreadCount(unreadCountBody);
 
       sendMessage(data, body);
     } catch (error) {
@@ -108,6 +114,7 @@ const Home = ({ user, logout }) => {
           messages: [message],
         };
         newConvo.latestMessageText = message.text;
+        newConvo.unreadCount = newConvo.messages.length;
         setConversations((prev) => [newConvo, ...prev]);
       }
 
@@ -167,6 +174,36 @@ const Home = ({ user, logout }) => {
       return 1;
     });
   }
+
+  const saveUnreadCount = async (body) => {
+    const { data } = await axios.patch("/api/conversations", body);
+    return data;
+  }
+
+  const updateUnreadCount = async (body) => {
+    try {
+      const data = await saveUnreadCount(body);
+      updateConversation(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const updateConversation = useCallback(
+    (data) => {
+      const { conversationId, unreadCount } = data;
+      setConversations((prev) =>
+      prev.map((convo) => {
+        if (convo.id === conversationId) {
+          const convoCopy = { ...convo };
+          convoCopy.unreadCount = unreadCount;
+          return convoCopy;
+        } else {
+          return convo;
+        }
+      }),
+    );
+  }, []);
 
   // Lifecycle
 
@@ -230,6 +267,7 @@ const Home = ({ user, logout }) => {
           clearSearchedUsers={clearSearchedUsers}
           addSearchedUsers={addSearchedUsers}
           setActiveChat={setActiveChat}
+          updateUnreadCount={updateUnreadCount}
         />
         <ActiveChat
           activeConversation={activeConversation}
