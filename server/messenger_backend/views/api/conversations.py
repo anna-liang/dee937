@@ -40,6 +40,7 @@ class Conversations(APIView):
                         message.to_dict(["id", "text", "senderId", "createdAt"])
                         for message in convo.messages.all()
                     ],
+                    "unreadCount": convo.unreadCount,
                 }
 
                 # set properties for notification count and latest message preview
@@ -67,5 +68,33 @@ class Conversations(APIView):
                 conversations_response,
                 safe=False,
             )
+        except Exception as e:
+            return HttpResponse(status=500)
+
+    """updates a user's unread messages count"""
+    def patch(self, request: Request):
+        try:
+            user = get_user(request)
+
+            if user.is_anonymous:
+                return HttpResponse(status=401)
+
+            body = request.data
+            conversation_id = body.get("conversationId")
+            unread_count = body.get("unreadCount")
+
+            convo_dict = {}
+
+            if conversation_id:
+                Conversation.objects.filter(id=conversation_id).update(unreadCount=unread_count)
+            
+                convo_dict["conversationId"] = conversation_id
+                convo_dict["unreadCount"] = unread_count
+
+            return JsonResponse(
+                convo_dict,
+                safe=False,
+            )
+
         except Exception as e:
             return HttpResponse(status=500)
