@@ -8,6 +8,7 @@ from .user import User
 
 class Conversation(utils.CustomModel):
 
+    conversationName = models.TextField(null=False)
     users = models.ManyToManyField(User, related_name="user_conversations")
     unreadCounts = HStoreField()
     createdAt = models.DateTimeField(auto_now_add=True, db_index=True)
