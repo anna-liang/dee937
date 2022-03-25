@@ -26,13 +26,11 @@ const Chat = ({ conversation, setActiveChat, updateUnreadCount }) => {
     latestMessageSender = conversation.messages[numbersOfMessages - 1].senderId;
   }
 
-  const isUnread = () => {
-    return latestMessageSender === otherUser.id && conversation.unreadCount > 0;
-  }
+  const isUnread = latestMessageSender === otherUser.id && conversation.unreadCount > 0;
 
   const handleClick = async (conversation) => {
     await setActiveChat(conversation.otherUser.username);
-    if (isUnread()) {
+    if (isUnread) {
       const body = { 'conversationId': conversation.id, 'unreadCount': 0};
       await updateUnreadCount(body);
     }

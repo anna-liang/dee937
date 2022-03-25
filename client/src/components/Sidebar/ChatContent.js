@@ -41,14 +41,13 @@ const ChatContent = ({ conversation, isUnread }) => {
         <Typography className={classes.username}>
           {otherUser.username}
         </Typography>
-        <Typography className={isUnread() ? classes.unreadPreviewText : classes.previewText}>
+        <Typography className={isUnread ? classes.unreadPreviewText : classes.previewText}>
           {latestMessageText}
         </Typography>
       </Box>
       <Box>
-        {isUnread() && (
-          <Badge badgeContent={conversation.unreadCount} color="primary" className={classes.badge}>
-          </Badge>
+        {isUnread && (
+          <Badge badgeContent={conversation.unreadCount} color="primary" className={classes.badge}/>
         )}
       </Box>
     </Box>
