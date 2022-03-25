@@ -49,6 +49,47 @@ const Home = ({ user, logout }) => {
     setConversations((prev) => prev.filter((convo) => convo.id));
   };
 
+  const sendUnreadCount = useCallback(
+    (data) => {
+      socket.emit("update-unread-count", {
+        conversationId: data.conversationId,
+        unreadCount: data.unreadCount,
+      });
+  }, [socket]);
+
+  const saveUnreadCount = useCallback(
+    async (body) => {
+      const { data } = await axios.patch("/api/conversations", body);
+      return data;
+  }, []);
+
+  const updateConversation = useCallback(
+    (data) => {
+      const { conversationId, unreadCount } = data;
+      setConversations((prev) =>
+      prev.map((convo) => {
+        if (convo.id === conversationId) {
+          const convoCopy = { ...convo };
+          convoCopy.unreadCount = unreadCount;
+          return convoCopy;
+        } else {
+          return convo;
+        }
+      }),
+    );
+  }, [setConversations]);
+
+  const updateUnreadCount = useCallback(
+    async (body) => {
+      try {
+        const data = await saveUnreadCount(body);
+        updateConversation(data);
+        sendUnreadCount(data);
+      } catch (error) {
+        console.error(error);
+      }
+  }, [saveUnreadCount, updateConversation, sendUnreadCount]);
+
   const saveMessage = async (body) => {
     const { data } = await axios.post("/api/messages", body);
     return data;
@@ -71,12 +112,6 @@ const Home = ({ user, logout }) => {
       } else {
         addMessageToConversation(data);
       }
-      
-      const conversationId = body.conversationId ? body.conversationId : data.message.conversationId;
-      const conversation = conversations.filter((convo) => convo.id === conversationId);
-      const unreadCount = conversation.length !== 0 ? conversation[0].unreadCount : 0;
-      const unreadCountBody = { 'conversationId': conversationId, 'unreadCount': unreadCount + 1 };
-      updateUnreadCount(unreadCountBody);
 
       sendMessage(data, body);
     } catch (error) {
@@ -93,6 +128,8 @@ const Home = ({ user, logout }) => {
             convoCopy.messages = [ ...convo.messages, message ];
             convoCopy.latestMessageText = message.text;
             convoCopy.id = message.conversationId;
+            const unreadCountBody = { 'conversationId': message.conversationId, 'unreadCount': 1 };
+            updateUnreadCount(unreadCountBody);
             return convoCopy;
           } else {
             return convo;
@@ -100,7 +137,7 @@ const Home = ({ user, logout }) => {
         })
       );
     },
-    [setConversations],
+    [setConversations, updateUnreadCount],
   );
 
   const addMessageToConversation = useCallback(
@@ -114,24 +151,27 @@ const Home = ({ user, logout }) => {
           messages: [message],
         };
         newConvo.latestMessageText = message.text;
-        newConvo.unreadCount = newConvo.messages.length;
+        newConvo.unreadCount = newConvo.messages.length - 1;
         setConversations((prev) => [newConvo, ...prev]);
       }
-
-      setConversations((prev) =>
-        prev.map((convo) => {
-          if (convo.id === message.conversationId) {
-            const convoCopy = { ...convo };
-            convoCopy.messages = [ ...convo.messages, message ];
-            convoCopy.latestMessageText = message.text;
-            return convoCopy;
-          } else {
-            return convo;
-          }
-        })
-      );
+      else {
+        setConversations((prev) =>
+          prev.map((convo) => {
+            if (convo.id === message.conversationId) {
+              const convoCopy = { ...convo };
+              convoCopy.messages = [ ...convo.messages, message ];
+              convoCopy.latestMessageText = message.text;
+              const unreadCountBody = { 'conversationId': message.conversationId, 'unreadCount': convo.unreadCount + 1 };
+              updateUnreadCount(unreadCountBody);
+              return convoCopy;
+            } else {
+              return convo;
+            }
+          })
+        );
+      }
     },
-    [setConversations],
+    [setConversations, updateUnreadCount],
   );
 
   const setActiveChat = (username) => {
@@ -175,36 +215,6 @@ const Home = ({ user, logout }) => {
     });
   }
 
-  const saveUnreadCount = async (body) => {
-    const { data } = await axios.patch("/api/conversations", body);
-    return data;
-  }
-
-  const updateUnreadCount = async (body) => {
-    try {
-      const data = await saveUnreadCount(body);
-      updateConversation(data);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const updateConversation = useCallback(
-    (data) => {
-      const { conversationId, unreadCount } = data;
-      setConversations((prev) =>
-      prev.map((convo) => {
-        if (convo.id === conversationId) {
-          const convoCopy = { ...convo };
-          convoCopy.unreadCount = unreadCount;
-          return convoCopy;
-        } else {
-          return convo;
-        }
-      }),
-    );
-  }, []);
-
   // Lifecycle
 
   useEffect(() => {
@@ -212,6 +222,7 @@ const Home = ({ user, logout }) => {
     socket.on("add-online-user", addOnlineUser);
     socket.on("remove-offline-user", removeOfflineUser);
     socket.on("new-message", addMessageToConversation);
+    socket.on("update-unread-count", updateConversation)
 
     return () => {
       // before the component is destroyed
@@ -219,8 +230,9 @@ const Home = ({ user, logout }) => {
       socket.off("add-online-user", addOnlineUser);
       socket.off("remove-offline-user", removeOfflineUser);
       socket.off("new-message", addMessageToConversation);
+      socket.off("update-unread-count", updateConversation)
     };
-  }, [addMessageToConversation, addOnlineUser, removeOfflineUser, socket]);
+  }, [addMessageToConversation, addOnlineUser, removeOfflineUser, updateConversation, socket]);
 
   useEffect(() => {
     // when fetching, prevent redirect
@@ -274,6 +286,7 @@ const Home = ({ user, logout }) => {
           conversations={conversations}
           user={user}
           postMessage={postMessage}
+          updateUnreadCount={updateUnreadCount}
         />
       </Grid>
     </>
