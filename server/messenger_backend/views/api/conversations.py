@@ -78,10 +78,16 @@ class Conversations(APIView):
 
             if user.is_anonymous:
                 return HttpResponse(status=401)
+            user_id = user.id
 
             body = request.data
             conversation_id = body.get("conversationId")
             unread_count = body.get("unreadCount")
+
+            conversation = Conversation.objects.get(id=conversation_id)
+            if conversation.user1 and conversation.user2 \
+                and conversation.user1.id != user_id and conversation.user2.id != user_id:
+                return HttpResponse(status=403)
 
             convo_dict = {}
 
