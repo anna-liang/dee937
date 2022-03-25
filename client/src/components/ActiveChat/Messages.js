@@ -38,7 +38,7 @@ const Messages = (props) => {
                 otherUser={otherUser}
               />
             )}
-            {lastReadMessage && lastReadMessage.id === message.id && (
+            {lastReadMessage && lastReadMessage.id === message.id && lastReadMessage.senderId === userId && (
               <Box className={classes.chatContainer}>
                 <Avatar
                   alt={otherUser.username}
