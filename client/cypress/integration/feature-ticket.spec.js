@@ -63,6 +63,10 @@ const alice = {
     it("messages are read when recipient opens conversation", () => {
       cy.login(bob.username, bob.password);
       cy.contains("Alice").click();
+
+      cy.logout();
+      cy.login(alice.username, alice.password);
+      cy.contains("Bob").click();
     
         cy.contains("First message").then(() => {
           // Select the message list DOM by finding the closest common ancestor
