@@ -30,6 +30,14 @@ def new_message(sid, message):
         skip_sid=sid,
     )
 
+@sio.on("update-unread-count")
+def update_unread_count(sid, convo):
+    sio.emit(
+        "update-unread-count",
+        {"conversationId": convo["conversationId"], "unreadCount": convo["unreadCount"]},
+        skip_sid=sid,
+    )
+
 
 @sio.on("logout")
 def logout(sid, user_id):

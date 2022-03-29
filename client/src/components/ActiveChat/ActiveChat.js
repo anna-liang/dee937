@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { makeStyles } from '@material-ui/core/styles';
 import { Box } from '@material-ui/core';
 import { Input, Header, Messages } from './index';
@@ -24,18 +24,49 @@ const ActiveChat = ({
   conversations,
   activeConversation,
   postMessage,
+  updateUnreadCount,
 }) => {
   const classes = useStyles();
 
-  const conversation = conversations
+  const conversation = useMemo(() => { return conversations
     ? conversations.find(
         (conversation) => conversation.otherUser.username === activeConversation
       )
-    : {};
+    : {}}, [activeConversation, conversations]);
 
   const isConversation = (obj) => {
     return obj !== {} && obj !== undefined;
   };
+
+  const lastReadMessage = isConversation(conversation) 
+    ? conversation.messages[conversation.messages.length - conversation.unreadCount - 1] 
+    : undefined;
+
+  let latestMessageSender = null;
+  if (isConversation(conversation)) {
+    const numbersOfMessages = conversation.messages.length;  
+    if (numbersOfMessages > 0) {
+      latestMessageSender = conversation.messages[numbersOfMessages - 1].senderId;
+    }
+  }
+
+  const isUnread = isConversation(conversation) ? latestMessageSender !== user.id && conversation.unreadCount > 0 : false;
+  
+  useEffect(() => {
+    const readMessages = async() => {
+      try {
+        if (isConversation(conversation)) {
+          const body = { 'conversationId': conversation.id, 'unreadCount': 0};
+          await updateUnreadCount(body);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    if (isUnread) {
+      readMessages();
+    }
+  }, [updateUnreadCount, conversation, isUnread]);
 
   return (
     <Box className={classes.root}>
@@ -49,6 +80,7 @@ const ActiveChat = ({
             {user && (
               <>
                 <Messages
+                  lastReadMessage={lastReadMessage}
                   messages={conversation.messages}
                   otherUser={conversation.otherUser}
                   userId={user.id}

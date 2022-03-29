@@ -17,12 +17,23 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const Chat = ({ conversation, setActiveChat }) => {
+const Chat = ({ conversation, setActiveChat, updateUnreadCount }) => {
   const classes = useStyles();
   const { otherUser } = conversation;
+  const numbersOfMessages = conversation.messages.length;
+  let latestMessageSender = null;
+  if (numbersOfMessages > 0) {
+    latestMessageSender = conversation.messages[numbersOfMessages - 1].senderId;
+  }
+
+  const isUnread = latestMessageSender === otherUser.id && conversation.unreadCount > 0;
 
   const handleClick = async (conversation) => {
     await setActiveChat(conversation.otherUser.username);
+    if (isUnread) {
+      const body = { 'conversationId': conversation.id, 'unreadCount': 0};
+      await updateUnreadCount(body);
+    }
   };
 
   return (
@@ -33,7 +44,10 @@ const Chat = ({ conversation, setActiveChat }) => {
         online={otherUser.online}
         sidebar={true}
       />
-      <ChatContent conversation={conversation} />
+      <ChatContent
+        conversation={conversation}
+        isUnread={isUnread}
+      />
     </Box>
   );
 };
